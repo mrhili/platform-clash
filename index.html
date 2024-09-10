@@ -1,0 +1,312 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Rap Battle Showdown</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            margin: 0;
+            padding: 0;
+            display: flex;
+            height: 100vh;
+            justify-content: center;
+            align-items: center;
+        }
+
+        .rapper-container {
+            width: 50%;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+            padding: 20px;
+            box-sizing: border-box;
+        }
+
+        .rapper-container.left {
+            background-color: #f0f0f0;
+        }
+
+        .rapper-container.right {
+            background-color: #e0e0e0;
+        }
+
+        .rapper {
+            width: 200px;
+            height: 200px;
+            background-color: lightyellow;
+            border: 2px solid black;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .rapper img {
+            width: 150px;
+            height: 150px;
+            border-radius: 50%;
+        }
+
+        .health-bar {
+            width: 100%;
+            height: 25px;
+            background-color: green;
+            margin-top: 10px;
+        }
+
+        .controls {
+            display: flex;
+            margin-top: 20px;
+            justify-content: space-around;
+            width: 80%;
+        }
+
+        .controls input {
+            width: 100px;
+            padding: 5px;
+        }
+
+        button {
+            margin: 10px;
+            padding: 10px;
+            font-size: 16px;
+            cursor: pointer;
+        }
+
+        #battleLog {
+            display: none;
+            position: absolute;
+            bottom: 10px;
+            left: 50%;
+            transform: translateX(-50%);
+            width: 80%;
+            max-height: 200px;
+            background-color: #f4f4f4;
+            border: 2px solid black;
+            padding: 10px;
+            overflow-y: auto;
+        }
+
+        .toggle-log {
+            position: absolute;
+            bottom: 20px;
+            right: 20px;
+            padding: 10px;
+            background-color: #333;
+            color: white;
+            cursor: pointer;
+        }
+
+        /* Pre-battle setup screen */
+        #setupScreen {
+            display: flex;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+        }
+
+        #setupScreen input {
+            margin: 10px;
+        }
+
+        /* Winner screen */
+        #winnerScreen {
+            display: none;
+            flex-direction: column;
+            justify-content: center;
+            align-items: center;
+            background-color: lightgreen;
+            width: 100%;
+            height: 100vh;
+            position: absolute;
+            top: 0;
+            left: 0;
+        }
+
+        .winner img {
+            width: 200px;
+            height: 200px;
+            border-radius: 50%;
+        }
+
+        .fade {
+            animation: fadeIn 2s forwards;
+        }
+
+        @keyframes fadeIn {
+            0% {
+                opacity: 0;
+            }
+            100% {
+                opacity: 1;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <!-- Pre-Battle Setup -->
+    <div id="setupScreen">
+        <h1>Set Up Rap Battle</h1>
+        <div>
+            <label for="name1">Rapper 1 Name: </label>
+            <input id="name1" type="text" placeholder="Rapper 1 Name">
+            <input type="file" id="imgInput1" accept="image/*">
+        </div>
+        <div>
+            <label for="name2">Rapper 2 Name: </label>
+            <input id="name2" type="text" placeholder="Rapper 2 Name">
+            <input type="file" id="imgInput2" accept="image/*">
+        </div>
+        <button onclick="startBattle()">Start Battle</button>
+    </div>
+
+    <!-- Battle Interface -->
+    <div id="battleScreen" style="display:none;">
+	
+		
+        <!-- Left Rapper -->
+        <div class="rapper-container left">
+            <div class="rapper">
+                <img id="rapper1Image" src="https://via.placeholder.com/150x150?text=Rapper+1" alt="Rapper 1">
+                <div id="rapper1Name">Rapper 1</div>
+                <div class="health-bar" id="healthBar1"></div>
+            </div>
+
+            <!-- Punchline Input for Rapper 1 -->
+            <div class="controls">
+                <input id="punchline1" type="text" placeholder="Punchline...">
+                <input id="damage1" type="number" placeholder="Points" value="20" min="1" max="100">
+                <button onclick="punch('rapper1')">Punch Rapper 2</button>
+            </div>
+        </div>
+
+        <!-- Right Rapper -->
+        <div class="rapper-container right">
+            <div class="rapper">
+                <img id="rapper2Image" src="https://via.placeholder.com/150x150?text=Rapper+2" alt="Rapper 2">
+                <div id="rapper2Name">Rapper 2</div>
+                <div class="health-bar" id="healthBar2"></div>
+            </div>
+
+            <!-- Punchline Input for Rapper 2 -->
+            <div class="controls">
+                <input id="punchline2" type="text" placeholder="Punchline...">
+                <input id="damage2" type="number" placeholder="Points" value="20" min="1" max="100">
+                <button onclick="punch('rapper2')">Punch Rapper 1</button>
+            </div>
+        </div>
+
+        <!-- Toggleable Battle Log -->
+        <div id="battleLog">
+            <strong>Battle Log:</strong><br>
+        </div>
+        <button class="toggle-log" onclick="toggleLog()">Show Battle Log</button>
+    </div>
+
+    <!-- Winner Announcement -->
+    <div id="winnerScreen">
+        <h1>Winner!</h1>
+        <div class="winner">
+            <img id="winnerImage" src="" alt="Winner Image">
+        </div>
+        <h2 id="winnerName">Winner Name</h2>
+        <button onclick="resetGame()">Play Again</button>
+    </div>
+
+    <script>
+        let pointsRapper1 = 100;
+        let pointsRapper2 = 100;
+
+        const healthBar1 = document.getElementById('healthBar1');
+        const healthBar2 = document.getElementById('healthBar2');
+
+        healthBar1.style.width = pointsRapper1 + '%';
+        healthBar2.style.width = pointsRapper2 + '%';
+
+        // Pre-battle setup
+        function startBattle() {
+            const name1 = document.getElementById('name1').value || 'Rapper 1';
+            const name2 = document.getElementById('name2').value || 'Rapper 2';
+            
+            document.getElementById('rapper1Name').textContent = name1;
+            document.getElementById('rapper2Name').textContent = name2;
+            
+            const imgInput1 = document.getElementById('imgInput1').files[0];
+            const imgInput2 = document.getElementById('imgInput2').files[0];
+            
+            if (imgInput1) {
+                document.getElementById('rapper1Image').src = URL.createObjectURL(imgInput1);
+            }
+            if (imgInput2) {
+                document.getElementById('rapper2Image').src = URL.createObjectURL(imgInput2);
+            }
+            
+            document.getElementById('setupScreen').style.display = 'none';
+            document.getElementById('battleScreen').style.display = 'flex';
+
+            document.addEventListener('keydown', (e) => {
+                if (e.key === 'Enter') {
+                    punch('rapper1');
+                }
+            });
+        }
+
+        function punch(target) {
+            let punchline, damage;
+
+            if (target === 'rapper1') {
+                punchline = document.getElementById('punchline1').value || 'No punchline';
+                damage = parseInt(document.getElementById('damage1').value) || 20;
+                pointsRapper2 -= damage;
+                updateHealth('healthBar2', pointsRapper2);
+                logPunch('Rapper 1', punchline, damage, 'Rapper 2');
+                checkWinner(pointsRapper2, 'rapper2Name', 'rapper1Name');
+            } else {
+                punchline = document.getElementById('punchline2').value || 'No punchline';
+                damage = parseInt(document.getElementById('damage2').value) || 20;
+                pointsRapper1 -= damage;
+                updateHealth('healthBar1', pointsRapper1);
+                logPunch('Rapper 2', punchline, damage, 'Rapper 1');
+                checkWinner(pointsRapper1, 'rapper1Name', 'rapper2Name');
+            }
+        }
+
+        function updateHealth(barId, healthPoints) {
+            const healthBar = document.getElementById(barId);
+            healthBar.style.width = healthPoints + '%';
+        }
+
+        function logPunch(attacker, punchline, damage, defender) {
+            const log = `${attacker} punched ${defender} with "${punchline}" for ${damage} damage!<br>`;
+            document.getElementById('battleLog').innerHTML += log;
+        }
+
+        function toggleLog() {
+            const log = document.getElementById('battleLog');
+            log.style.display = log.style.display === 'none' ? 'block' : 'none';
+        }
+
+        function checkWinner(health, loserId, winnerId) {
+            if (health <= 0) {
+                const winnerName = document.getElementById(winnerId).textContent;
+                const winnerImage = document.getElementById(winnerId.replace('Name', 'Image')).src;
+
+                document.getElementById('winnerImage').src = winnerImage;
+                document.getElementById('winnerName').textContent = winnerName;
+                document.getElementById('battleScreen').style.display = 'none';
+                document.getElementById('winnerScreen').classList.add('fade');
+                document.getElementById('winnerScreen').style.display = 'flex';
+            }
+        }
+
+        function resetGame() {
+            location.reload();
+        }
+    </script>
+
+</body>
+</html>
